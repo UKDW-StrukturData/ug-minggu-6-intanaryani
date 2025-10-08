@@ -14,29 +14,37 @@ class excelManager:
         self.__sheetName = sheetName
         self.__data = pandas.read_excel(filePath,sheet_name=sheetName)
             
-    
     def insertData(self,newData:dict,saveChange:bool=False):
-        # kerjakan disini
-        # clue cara insert row: df = pandas.concat([df, pandas.DataFrame([{"NIM":0,"Nama":"Udin","Nilai":1000}])], ignore_index=True)
-        
+        # Insert row ke dataframe
+        self.__data = pandas.concat([self.__data, pandas.DataFrame([newData])], ignore_index=True)
         if (saveChange): self.saveChange()
-        pass
     
     def deleteData(self, targetedNim:str,saveChange:bool=False):
-        # kerjakan disini
-        # clue cara delete row: df.drop(indexBaris, inplace=True); contoh: df.drop(0,inplace=True)
-        
-        
+        # Cari baris dengan NIM yang sesuai
+        idx = None
+        for i in self.__data.index:
+            if str(self.__data.at[i, "NIM"]) == str(targetedNim):
+                idx = i
+                break
+        if idx is not None:
+            self.__data.drop(idx, inplace=True)
+            self.__data.reset_index(drop=True, inplace=True)
         if (saveChange): self.saveChange()
-        pass
     
     def editData(self, targetedNim:str, newData:dict,saveChange:bool=False) -> dict:
-        # kerjakan disini
-        # clue cara ganti value: df.at[indexBaris,namaKolom] = value; contoh: df.at[0,ID] = 1
+        # Edit data pada baris dengan NIM tertentu
+        idx = None
+        for i in self.__data.index:
+            if str(self.__data.at[i, "NIM"]) == str(targetedNim):
+                idx = i
+                break
+        if idx is not None:
+            for key in newData:
+                if key in self.__data.columns:
+                    self.__data.at[idx, key] = newData[key]
         if (saveChange): self.saveChange()
-        pass
+        return newData if idx is not None else None
     
-                    
     def getData(self, colName:str, data:str) -> dict:
         collumn = self.__data.columns # mendapatkan list dari nama kolom tabel
         
@@ -48,7 +56,6 @@ class excelManager:
         
         # nama kolom yang sudah pasti benar dan ada
         colName = collumn[collumnIndex[0]]
-        
         
         resultDict = dict() # tempat untuk hasil
         

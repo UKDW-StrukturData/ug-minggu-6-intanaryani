@@ -1,64 +1,99 @@
 import streamlit as st
 from DatabaseManager import excelManager
 
-
 em = excelManager("dataExcel.xlsx")
-options = ["Choose Action","Insert", "Edit", "Delete"]
+options = ["Choose Action", "Insert", "Edit", "Delete"]
 choice = st.selectbox("Choose an action:", options)
-saveChange = st.checkbox("SaveChanges",value=False)
 
 if choice in ("Edit", "Delete"):
     nim = st.text_input("Enter targeted NIM:", key="targetNim")
-    if (choice == "Delete"):
-        if (sum([1 for i in nim if str(i).isalpha()]) > 0): st.error("Input nim harus angka semua")
+    saveChange = st.checkbox("SaveChanges", value=False, key="saveChangeEditDelete")
+    if choice == "Delete":
+        if any(str(i).isalpha() for i in nim):
+            st.error("Input nim harus angka semua")
         elif st.button("Delete"):
-            if (not em.getData("NIM",nim)): st.error("nim not found")
+            if not em.getData("NIM", nim):
+                st.error("nim not found")
             else:
-                em.deleteData(nim,saveChange)
-                if (not em.getData("NIM",nim)): st.success("deleted")
-            
+                em.deleteData(nim, saveChange)
+                if not em.getData("NIM", nim):
+                    st.success("deleted")
 
-if (choice in ("Insert","Edit")):
-    newNim = st.text_input("Enter New NIM:",key="newNim")
-    newName = st.text_input("Enter New Name:",key="newName")
+if choice in ("Insert", "Edit"):
+    newNim = st.text_input("Enter New NIM:", key="newNim")
+    newName = st.text_input("Enter New Name:", key="newName")
     newGrade = st.text_input("Enter New Grade :", key="newGrade")
-
-    if (choice == "Edit"):
+    saveChange = st.checkbox("SaveChanges", value=False, key="saveChangeInsertEdit")
+    if choice == "Edit":
         if st.button("Edit"):
-            if (sum([1 for i in newNim if str(i).isalpha()]) > 0): st.error("Input nim harus angka semua")
-            elif (sum([1 for i in newName if str(i).isdigit()]) > 0): st.error("Input nama harus Alphabet semua")
-            elif (sum([1 for i in newGrade if str(i).isalpha()]) > 0): st.error("Input nilai harus angka semua")
+            if any(str(i).isalpha() for i in newNim):
+                st.error("Input nim harus angka semua")
+            elif any(str(i).isalpha() for i in newGrade):
+                st.error("Input nilai harus angka semua")
             else:
-                if (not em.getData("NIM",nim)): st.success("Nim not found")
+                if not em.getData("NIM", nim):
+                    st.error("Nim not found")
                 else:
-                    result = em.editData(str(nim),{"NIM":str(newNim).strip(),"Nama":str(newName).strip(),"Nilai":int(newGrade.strip())},saveChange)
-                    if (em.getData("NIM",newNim)): st.success("edited")
-                    else: st.error("edit failed")
+                    result = em.editData(
+                        str(nim),
+                        {
+                            "NIM": str(newNim).strip(),
+                            "Nama": str(newName).strip(),
+                            "Nilai": int(newGrade.strip()),
+                        },
+                        saveChange,
+                    )
+                    if em.getData("NIM", newNim):
+                        st.success("edited")
+                    else:
+                        st.error("edit failed")
 
-    if (choice == "Insert"):    
-        if (st.button("Insert")):
-            if (sum([1 for i in newNim if str(i).isalpha()]) > 0): st.error("Input nim harus angka semua")
-            elif (sum([1 for i in newName if str(i).isdigit()]) > 0): st.error("Input nama harus Alphabet semua")
-            elif (sum([1 for i in newGrade if str(i).isalpha()]) > 0): st.error("Input nilai harus angka semua")
+    if choice == "Insert":
+        if st.button("Insert"):
+            if any(str(i).isalpha() for i in newNim):
+                st.error("Input nim harus angka semua")
+            elif any(str(i).isalpha() for i in newGrade):
+                st.error("Input nilai harus angka semua")
             else:
-                if (em.getData("NIM",newNim)): st.error("Nim already exist")
+                if em.getData("NIM", newNim):
+                    st.error("Nim already exist")
                 else:
-                    em.insertData({"NIM":str(newNim).strip(),"Nama":str(newName).strip(),"Nilai":int(newGrade.strip())},saveChange)
-                    if (em.getData("NIM",newNim)): st.success("inserted")
-                    else: st.error("insert fail")
-                                
-# TODO: buatkan sistem filter data tabel berdasarkan kolom yang memiliki data angka
-option = ["None",">","<","=","<=",">="]
-filterSelectBox = st.selectbox("Opsi Filter: ",option)
+                    em.insertData(
+                        {
+                            "NIM": str(newNim).strip(),
+                            "Nama": str(newName).strip(),
+                            "Nilai": int(newGrade.strip()),
+                        },
+                        saveChange,
+                    )
+                    if em.getData("NIM", newNim):
+                        st.success("inserted")
+                    else:
+                        st.error("insert fail")
 
-if (filterSelectBox == "None"):
-    st.table(em.getDataFrame()) # tabel biasa
+# Sistem filter data tabel berdasarkan kolom angka
+option = ["Default", ">", "<", "=", "<=", ">="]
+filterSelectBox = st.selectbox("Sort table by: ", option)
+
+if filterSelectBox == "Default":
+    st.table(em.getDataFrame())
 else:
-    targetFilterColumn = st.selectbox("Target Column",["NIM","Nilai"]) # pilihan kolom
-    filter = st.text_input("Filter Nilai") # input angka filter
+    targetFilterColumn = st.selectbox("Target Column", ["NIM", "Nilai"])
+    filter_val = st.text_input("Filter Nilai")
 
-if (filter != ""):
-    if (filterSelectBox == ">"):
-        st.table(em.getDataFrame()[em.getDataFrame()[targetFilterColumn] > int(filter)]) # cara filter
-    # TODO: lanjutkan code di atas
-    # note: cara filter ada di modul
+    if filter_val != "":
+        if not filter_val.isdigit():
+            st.error("Filter harus berupa angka")
+        else:
+            df = em.getDataFrame()
+            filter_val_int = int(filter_val)
+            if filterSelectBox == ">":
+                st.table(df[df[targetFilterColumn] > filter_val_int])
+            elif filterSelectBox == "<":
+                st.table(df[df[targetFilterColumn] < filter_val_int])
+            elif filterSelectBox == "=":
+                st.table(df[df[targetFilterColumn] == filter_val_int])
+            elif filterSelectBox == "<=":
+                st.table(df[df[targetFilterColumn] <= filter_val_int])
+            elif filterSelectBox == ">=":
+                st.table(df[df[targetFilterColumn] >= filter_val_int])
